@@ -14,7 +14,7 @@ def create_reminder(request):
             data = reminder_form.cleaned_data['datetime']
             today_now = timezone.now()
             if today_now < data < today_now + datetime.timedelta(days=2):
-                message = "Message was sent successfully!"
+                message = "Message was sent!"
                 send_email.apply_async((text, email), eta=data)
                 return render(
                     request,
