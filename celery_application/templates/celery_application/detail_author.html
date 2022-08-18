@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Detail author</title>
+</head>
+<body>
+<h1>Detail about {{ object }}</h1>
+    <ul>ID: {{ object.id }}</ul>
+    <ul>Name: {{ object.name }}</ul>
+    <ul>Description: {{ object.description }}</ul>
+<ul><a href="{% url 'reminder:pagination_quotes' %}">Back to quotes list</a></ul>
+<ul><a href="{% url 'reminder:pagination_authors' %}">Look to authors list</a></ul>
+</body>
+</html>
