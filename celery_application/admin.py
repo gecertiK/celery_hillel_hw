@@ -1,16 +1,15 @@
-from django.contrib import admin  # noqa:F401
+from django.contrib import admin
 
-from celery_application.models import Author, Quotes
+from .models import Author, Quote
 
 
-# Register your models here.
 @admin.register(Author)
 class AuthorAdmin(admin.ModelAdmin):
-    list_display = ['name', 'description']
+    list_display = ('name', 'birthday')
     search_fields = ['name']
 
 
-@admin.register(Quotes)
-class QuotesAdmin(admin.ModelAdmin):
-    list_display = ['texts', 'author']
-    search_fields = ['author']
+@admin.register(Quote)
+class QuoteAdmin(admin.ModelAdmin):
+    list_display = ('text', 'author')
+    search_fields = ['name', 'author']

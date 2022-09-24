@@ -1,11 +1,11 @@
 from django.urls import path
 
-from celery_application.views import create_reminder, quote_list, AuthorDetailView, AuthorListView
+from .views import another_page, contact_form, note_form
 
-app_name = 'reminder'
+
+app_name = 'celery_form'
 urlpatterns = [
-    path('reminder/', create_reminder, name="create_reminder"),
-    path('quotes/', quote_list, name='pagination_quotes'),
-    path('authors/', AuthorListView.as_view(), name='pagination_authors'),
-    path('authors/<int:pk>', AuthorDetailView.as_view(), name='detail_author')
+    path('', note_form, name='index'),
+    path('contact/', contact_form, name='contact'),
+    path('another_page/', another_page, name='another_page')
 ]

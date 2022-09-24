@@ -153,3 +153,7 @@ CACHES = {
 # EMAIL
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+STATICFILES_DIRS = [
+    BASE_DIR / 'celery_form/static',
+]

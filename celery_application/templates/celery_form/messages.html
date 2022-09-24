@@ -1,0 +1,8 @@
+{% for message in messages %}
+        <div class="alert alert-success alert-dismissible" role="alert" >
+        {{ message }}
+            <button type="button" class="close" data-bs-dismiss="alert" aria-label="Close">
+            <span aria-hidden="True">&times;</span>
+        </button>
+        </div>
+{% endfor %}

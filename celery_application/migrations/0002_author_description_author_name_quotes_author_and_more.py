@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('celery_application', '0001_initial'),
+        ('celery_form', '0001_initial'),
     ]
 
     operations = [
@@ -24,7 +24,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='quotes',
             name='author',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='celery_application.author'),
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='celery_form.author'),
         ),
         migrations.AddField(
             model_name='quotes',

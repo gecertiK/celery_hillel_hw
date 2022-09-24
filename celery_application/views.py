@@ -1,57 +1,58 @@
-from django.http import Http404
-from django.shortcuts import render
-from django.views import generic
+from django.http import JsonResponse
+from django.shortcuts import redirect, render
+from django.template.loader import render_to_string
 
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from celery_application.forms import ReminderForm
-from celery_application.models import Author, Quotes
-from celery_application.tasks import send_email
-from django.views.decorators.cache import cache_page
+from .forms import ContactForm, PostForm
+from .tasks import send_contact, send_task
 
 
-def create_reminder(request):
+def note_form(request):
     if request.method == 'POST':
-        reminder_form = ReminderForm(request.POST)
-        if reminder_form.is_valid():
-            email = reminder_form.cleaned_data['email']
-            text = reminder_form.cleaned_data['text']
-            data = reminder_form.cleaned_data['datetime']
-            message = "Message was sent!"
-            send_email.apply_async((text, email), eta=data)
-            return render(
-                request,
-                'celery_application/send_email.html',
-                {'reminder_form': reminder_form, 'message': message, })
+        form = PostForm(request.POST)
+        if form.is_valid():
+            subject = form.cleaned_data['subject']
+            email_recipient = form.cleaned_data['email_recipient']
+            message = form.cleaned_data['message']
+            deadline = form.cleaned_data['date_and_time']
+            send_task.apply_async((subject, email_recipient, message), eta=deadline)
+            return redirect('celery_form:index')
     else:
-        reminder_form = ReminderForm()
+        form = PostForm()
     return render(
         request,
-        'celery_application/send_email.html',
-        {'reminder_form': reminder_form, })
+        'celery_form/index.html',
+        {
+            'note_form': form}
+        )
 
 
-@cache_page(1)
-def quote_list(request):
-    quotes_list = Quotes.objects.select_related('author').all()
-    page = request.GET.get('page', 1)
-    paginator = Paginator(quotes_list, 150)
-    try:
-        page_obj = paginator.page(page)
-    except PageNotAnInteger:
-        page_obj = paginator.page(1)
-    except EmptyPage:
-        raise Http404
-    context = {'page_obj': page_obj}
-    return render(request, 'celery_application/pagination_quotes.html', context)
+def another_page(request):
+    return render(request, 'celery_form/another_page.html')
 
 
-class AuthorListView(generic.ListView):
-    model = Author
-    queryset = Author.objects.all()
-    paginate_by = 200
-    template_name = 'celery_application/pagination_authors.html'
+def contact(request, form, template_name):
+    data = dict()
+    if request.method == 'POST':
+        if form.is_valid():
+            name = form.cleaned_data['name']
+            email = form.cleaned_data['email']
+            message = form.cleaned_data['message']
+            send_contact.delay(name, email, message)
+            data['form_is_valid'] = True
+            msg = [f"Сообщение от {name} отправлено"]
+            data['msg_list'] = render_to_string('celery_form/messages.html', {
+                'messages': msg
+            })
+        else:
+            data['form_is_valid'] = False
+    context = {'form': form}
+    data['html_form'] = render_to_string(template_name, context, request=request)
+    return JsonResponse(data)
 
 
-class AuthorDetailView(generic.DetailView):
-    model = Author
-    template_name = 'celery_application/detail_author.html'
+def contact_form(request):
+    if request.method == 'POST':
+        form = ContactForm(request.POST)
+    else:
+        form = ContactForm()
+    return contact(request, form, 'celery_form/contact.html')
