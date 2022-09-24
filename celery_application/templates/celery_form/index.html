@@ -1,0 +1,16 @@
+{% extends 'celery_form/base.html' %}
+{% block title %}
+Index Page
+{% endblock %}
+{% block content %}
+    {% if data.form_is_valid %}
+    <p id="succes_email">{{ message }}Должно быть здесь</p>
+    {% endif %}
+    <form action="{% url 'celery_form:index' %}" method="post">
+        {% csrf_token %}
+        {{ note_form.as_p }}
+        <input type="submit" name="submit" value="OK">
+    </form>
+    <p><a href="{% url 'celery_form:index' %}">Назад</a></p>
+
+{% endblock %}

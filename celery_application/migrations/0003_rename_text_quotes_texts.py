@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('celery_application', '0002_author_description_author_name_quotes_author_and_more'),
+        ('celery_form', '0002_author_description_author_name_quotes_author_and_more'),
     ]
 
     operations = [

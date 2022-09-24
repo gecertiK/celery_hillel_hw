@@ -1,49 +1,94 @@
-from celery import shared_task
-from django.core.mail import send_mail
+import re
+from datetime import date, datetime
+
 from bs4 import BeautifulSoup
-from celery_application.models import Author, Quotes
+
+from celery import shared_task
+
+from django.core.mail import send_mail
+
 import requests
 
-
-@shared_task
-def send_email(text, email):
-    send_mail("Reminder", text, 'admin@example.com', [email])
+from .models import Author, Quote
 
 
 @shared_task
-def work_done():
+def send_task(subject, email_recipient, message):
     send_mail(
-        subject='Work has ended',
-        message='No more quotes',
-        from_email='david@example.com',
+        subject=subject,
+        message=message,
+        from_email='admin@example.com',
+        recipient_list=[email_recipient],
+        fail_silently=False
+    )
+
+
+@shared_task
+def send_contact(subject, email, message):
+    send_mail(
+        subject=subject,
+        message=message,
+        from_email=email,
+        recipient_list=['admin@example.com'],
+        fail_silently=False
+    )
+
+
+@shared_task
+def email_done():
+    send_mail(
+        subject='Job is done',
+        message='All ok',
+        from_email='admin@example.com',
         recipient_list=['admin@example.com', ],
         fail_silently=False
     )
 
 
 @shared_task
-def parse_quotes():
+def parse_quote():
+    base_url = 'http://quotes.toscrape.com'
+    pattern = r"\b([a-zA-Z]+)\s(\d+),\s(\d+)\b"
+    page_url = '/page/1'
     count = 0
-    while True:
-        url = 'https://quotes.toscrape.com/'
-        r = requests.get(url)
-        s = BeautifulSoup(r.content, 'html.parser')
-        quotes = s.find_all("div", {"class": "quote"})
-        for i in quotes:
-            if i.span.text not in Quotes.objects.filter(message=i.span.text).exists():
-                author = i.small.text
-                description_url = requests.get(url + i.a.get('href'))
-                soup_description = BeautifulSoup(description_url.content, 'html.parser')
-                description = soup_description.find("div", {"class": "author-description"})
-                author1 = Author.objects.get_or_create(name=author, defaults={'description': description.text})
-                Quotes.objects.create(message=i.span.text, author=author1[0])
-                count += 1
-                if count == 5:
-                    break
+
+    while page_url:
+        res = requests.get(base_url + page_url)
+        html = BeautifulSoup(res.content, 'html.parser')
+
+        quotes = html.find_all('div', {'class': 'quote'})
+
+        for quote in quotes:
+            if Quote.objects.filter(text=quote.span.text).exists():
+                continue
+
+            auth_request = requests.get(base_url + quote.a.get('href'))
+            auth_html = BeautifulSoup(auth_request.content, 'html.parser')
+            auth_desc = auth_html.find('div', {'class': 'author-description'}).text.strip()
+            birth_day = re.search(pattern, auth_html.text)
+            auth_obj, created = Author.objects.get_or_create(
+                name=quote.small.text,
+                defaults={
+                    'birthday':
+                        date(int(birth_day[3]),
+                             datetime.strptime(birth_day[1], '%B').month,
+                             int(birth_day[2])),
+                    'description': auth_desc,
+                },
+            )
+
+            Quote.objects.create(
+                text=quote.span.text,
+                author=auth_obj
+            )
+            count += 1
+            if count == 5:
+                return
+
         if count < 5:
-            next_url = s.find("li", {"class": "next"}).a.get("href")
-            url = url + next_url
-            if next_url is None:
-                send_email("Quotes have ended!", "The are not new quotes in this site!", "admin@test.com",
-                                 ['admin@example.com'])
-                break
+            next_btn = html.find('li', {'class': 'next'})
+            if next_btn:
+                page_url = next_btn.a.get('href')
+            else:
+                page_url = None
+                email_done.delay()
